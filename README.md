@@ -11,7 +11,7 @@
 pip install ragvault
 ```
 
-Most RAG implementations use basic chunking, a single retrieval method, and skip reranking. ragvault stacks five state-of-the-art techniques into a single unified pipeline — from raw text to a compressed, Claude-powered answer.
+Most RAG implementations use basic chunking, a single retrieval method, and skip reranking. ragvault stacks five state-of-the-art techniques into a single unified pipeline - from raw text to a compressed, Claude-powered answer.
 
 ---
 
@@ -43,7 +43,7 @@ Raw Text
     ▼  ④ Cross-Encoder Reranking  (BAAI/bge-reranker-large)
     │     Scores each (query, chunk) pair jointly.
     │     Far more accurate than bi-encoder dot products.
-    │     Runs only over ~20 candidates — fast enough for production.
+    │     Runs only over ~20 candidates - fast enough for production.
     │
     ▼  ⑤ Context Compression  (LLMLingua-2)
     │     Removes redundant tokens from retrieved context.
@@ -68,7 +68,7 @@ from ragvault import RagVault
 vault = RagVault()
 vault.index(open("my_doc.txt").read())
 
-# Compressed context string — plug into any LLM
+# Compressed context string - plug into any LLM
 context = vault.query("What is hybrid retrieval?")
 
 # Or let ragvault call Claude and return the answer directly
@@ -122,13 +122,13 @@ chunks = chunker.chunk(long_document)
 chunks = chunker.chunk_documents([doc1, doc2, doc3])
 ```
 
-**Why it matters:** A 1000-token chunk that mixes three topics will retrieve for all three — adding noise. A semantic chunk that covers exactly one topic retrieves precisely.
+**Why it matters:** A 1000-token chunk that mixes three topics will retrieve for all three - adding noise. A semantic chunk that covers exactly one topic retrieves precisely.
 
 ---
 
 ### BGE Embeddings
 
-BGE (BAAI General Embeddings) from the Beijing Academy of AI consistently tops the [MTEB leaderboard](https://huggingface.co/spaces/mteb/leaderboard). ragvault uses `bge-large-en-v1.5` with separate encoding paths — queries get a task instruction prefix, passages do not. This alignment is critical: without it, query and document embeddings live in slightly different semantic spaces.
+BGE (BAAI General Embeddings) from the Beijing Academy of AI consistently tops the [MTEB leaderboard](https://huggingface.co/spaces/mteb/leaderboard). ragvault uses `bge-large-en-v1.5` with separate encoding paths - queries get a task instruction prefix, passages do not. This alignment is critical: without it, query and document embeddings live in slightly different semantic spaces.
 
 ```python
 from ragvault import BGEEmbedder
@@ -151,7 +151,7 @@ Dense retrieval alone misses exact keyword matches. BM25 alone misses semantic p
 RRF score(doc) = Σ  1 / (k + rank_in_system)   where k = 60
 ```
 
-k=60 is the standard smoothing constant — it prevents the top-ranked document in one system from dominating when the other system ranks it low. No score normalisation is needed; only ranks matter. This makes fusion robust to score distribution differences between dense and sparse systems.
+k=60 is the standard smoothing constant - it prevents the top-ranked document in one system from dominating when the other system ranks it low. No score normalisation is needed; only ranks matter. This makes fusion robust to score distribution differences between dense and sparse systems.
 
 ```python
 from ragvault import HybridRetriever
@@ -160,7 +160,7 @@ import numpy as np
 retriever = HybridRetriever(chunks, embeddings, rrf_k=60)
 results   = retriever.retrieve("my query", query_embedding, top_n=20)
 
-# Incremental indexing — no need to rebuild from scratch
+# Incremental indexing - no need to rebuild from scratch
 retriever.add_documents(new_chunks, new_embeddings)
 ```
 
@@ -257,7 +257,7 @@ print(results)
 
 ## Multi-document indexing
 
-ragvault supports incremental indexing — add documents one at a time without rebuilding from scratch.
+ragvault supports incremental indexing - add documents one at a time without rebuilding from scratch.
 
 ```python
 vault = RagVault()
@@ -282,10 +282,10 @@ answer = vault.ask("Compare the approaches in document 1 and document 3.")
 
 ```python
 vault = RagVault(
-    # Embedding model — swap for bge-m3 for multilingual
+    # Embedding model - swap for bge-m3 for multilingual
     embedding_model    = "BAAI/bge-large-en-v1.5",
 
-    # Reranker model — bge-reranker-v2-m3 for multilingual
+    # Reranker model - bge-reranker-v2-m3 for multilingual
     reranker_model     = "BAAI/bge-reranker-large",
 
     # Semantic chunking sensitivity
@@ -331,7 +331,7 @@ pip install -e ".[dev]"
 pytest tests/ -v
 ```
 
-All 26 tests run with lightweight NumPy mocks — no GPU, no model download, no API key needed.
+All 26 tests run with lightweight NumPy mocks - no GPU, no model download, no API key needed.
 
 ```
 26 passed in 2.46s
@@ -354,7 +354,7 @@ All 26 tests run with lightweight NumPy mocks — no GPU, no model download, no 
 
 ## License
 
-MIT — use freely in commercial and personal projects.
+MIT - use freely in commercial and personal projects.
 
 ---
 

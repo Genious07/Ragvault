@@ -4,31 +4,41 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ragvault"
-version = "0.1.0"
-description = "Best-in-class RAG: semantic chunking + BGE embeddings + hybrid retrieval + cross-encoder reranking + context compression + RAGAS evaluation"
+version = "0.2.0"
+description = "Self-optimizing RAG: adaptive pipeline routing, multi-LLM, citations, persistence"
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
-keywords = ["rag", "retrieval", "embeddings", "nlp", "llm"]
+keywords = ["rag", "retrieval", "embeddings", "nlp", "llm", "adaptive", "citations"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
+
+# Core deps — everything needed for indexing and retrieval.
+# LLM providers, compression, and evaluation are optional extras.
 dependencies = [
     "FlagEmbedding>=1.2.0",
     "rank-bm25>=0.2.2",
     "faiss-cpu>=1.7.4",
-    "llmlingua>=0.2.0",
-    "ragas>=0.2.0",
-    "datasets>=2.14.0",
     "numpy>=1.24.0",
     "torch>=2.0.0",
-    "anthropic>=0.25.0",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=7.0", "pytest-cov"]
+anthropic   = ["anthropic>=0.25.0"]
+openai      = ["openai>=1.0.0"]
+compression = ["llmlingua>=0.2.0"]
+evaluation  = ["ragas>=0.2.0", "datasets>=2.14.0"]
+dev         = ["pytest>=7.0", "pytest-cov"]
+all         = [
+    "anthropic>=0.25.0",
+    "openai>=1.0.0",
+    "llmlingua>=0.2.0",
+    "ragas>=0.2.0",
+    "datasets>=2.14.0",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]

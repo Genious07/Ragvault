@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+
 import numpy as np
 
 
@@ -10,6 +11,9 @@ class SemanticChunker:
 
     Strategy: embed every sentence, then split whenever cosine similarity
     between adjacent sentences drops below `threshold`.
+
+    Pass return_embeddings=True to get pooled chunk embeddings for free,
+    avoiding a second embedding pass at index time.
     """
 
     def __init__(self, embedder=None, threshold: float = 0.75, min_chunk_size: int = 50):
@@ -18,37 +22,72 @@ class SemanticChunker:
         self.min_chunk_size = min_chunk_size
 
     def _split_sentences(self, text: str) -> list[str]:
-        # split on sentence boundaries while keeping the delimiter attached
         raw = re.split(r"(?<=[.!?])\s+", text.strip())
         return [s.strip() for s in raw if s.strip()]
 
-    def chunk(self, text: str) -> list[str]:
+    def chunk(
+        self,
+        text: str,
+        return_embeddings: bool = False,
+    ) -> list[str] | tuple[list[str], np.ndarray]:
+        """
+        Chunk text into semantically coherent segments.
+
+        Args:
+            text: Input text.
+            return_embeddings: If True, return (chunks, embeddings) where embeddings
+                are computed by mean-pooling sentence embeddings within each chunk.
+                Saves a full re-embed pass at index time.
+
+        Returns:
+            list[str] when return_embeddings=False,
+            tuple[list[str], np.ndarray] when return_embeddings=True.
+        """
         sentences = self._split_sentences(text)
-        if len(sentences) <= 1:
-            return [text.strip()] if text.strip() else []
+        if not sentences:
+            return ([], np.empty((0, 1))) if return_embeddings else []
+        if len(sentences) == 1:
+            result = [text.strip()]
+            if return_embeddings:
+                embs = self.embedder.embed(result)
+                return result, embs
+            return result
 
         embeddings = self.embedder.embed(sentences)
         norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
-        embeddings = embeddings / np.maximum(norms, 1e-9)
+        unit_embs = embeddings / np.maximum(norms, 1e-9)
 
         chunks: list[str] = []
+        chunk_emb_list: list[np.ndarray] = []
         current: list[str] = [sentences[0]]
+        current_idx: list[int] = [0]
 
         for i in range(1, len(sentences)):
-            sim = float(np.dot(embeddings[i], embeddings[i - 1]))
+            sim = float(np.dot(unit_embs[i], unit_embs[i - 1]))
             if sim < self.threshold and len(" ".join(current)) >= self.min_chunk_size:
                 chunks.append(" ".join(current))
+                if return_embeddings:
+                    chunk_emb_list.append(unit_embs[current_idx].mean(axis=0))
                 current = []
+                current_idx = []
             current.append(sentences[i])
+            current_idx.append(i)
 
         if current:
             chunks.append(" ".join(current))
+            if return_embeddings:
+                chunk_emb_list.append(unit_embs[current_idx].mean(axis=0))
+
+        if return_embeddings:
+            dim = embeddings.shape[1]
+            chunk_embs = np.stack(chunk_emb_list) if chunk_emb_list else np.empty((0, dim))
+            return chunks, chunk_embs
 
         return chunks
 
     def chunk_documents(self, texts: list[str]) -> list[str]:
         """Chunk multiple documents and return a flat list of chunks."""
-        all_chunks: list[str] = []
+        result: list[str] = []
         for text in texts:
-            all_chunks.extend(self.chunk(text))
-        return all_chunks
+            result.extend(self.chunk(text))
+        return result

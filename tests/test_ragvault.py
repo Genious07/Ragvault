@@ -170,7 +170,9 @@ class TestHybridRetriever:
         retriever = self._make_retriever(mock_embedder)
         q_emb = mock_embedder.embed_query("FAISS vector search")
         results = retriever.retrieve("FAISS vector search", q_emb, top_n=5)
-        assert all(r in SAMPLE_CHUNKS for r in results)
+        # retrieve() now returns chunk indices; all must be valid corpus positions
+        assert all(isinstance(r, (int, np.integer)) for r in results)
+        assert all(0 <= r < len(SAMPLE_CHUNKS) for r in results)
 
     def test_add_documents(self, mock_embedder):
         from ragvault.retrieval import HybridRetriever
@@ -267,6 +269,7 @@ class TestRagVaultIntegration:
         from ragvault import RagVault
         from ragvault.reranking import CrossEncoderReranker
         from ragvault.compression import ContextCompressor
+        from ragvault.pipeline import QueryRouter
 
         class FakeReranker:
             def compute_score(self, pairs, normalize=True):
@@ -281,10 +284,14 @@ class TestRagVaultIntegration:
         vault.rerank_top_n = 3
         vault.compression_rate = 0.5
         vault.use_compression = True
+        vault._index_type = "flat"
+        vault._llm_provider_spec = "anthropic"
+        vault._llm = None
         vault.embedder = mock_embedder
         vault.chunker = __import__(
             "ragvault.chunking", fromlist=["SemanticChunker"]
         ).SemanticChunker(embedder=mock_embedder, threshold=0.0)
+        vault._router = QueryRouter()
 
         reranker = CrossEncoderReranker.__new__(CrossEncoderReranker)
         reranker.model_name = "mock"
@@ -297,6 +304,9 @@ class TestRagVaultIntegration:
 
         vault._retriever = None
         vault._chunks = []
+        vault._metadata = []
+        vault._doc_index = {}
+        vault._deleted_doc_ids = set()
         return vault
 
     def test_index_and_query(self, mock_embedder):
@@ -337,7 +347,7 @@ class TestRagVaultIntegration:
         vault.index_chunks(SAMPLE_CHUNKS[:3])
         r = repr(vault)
         assert "RagVault" in r
-        assert "docs=3" in r
+        assert "chunks=3" in r
 
     def test_len(self, mock_embedder):
         vault = self._build_vault(mock_embedder)
